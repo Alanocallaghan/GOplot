@@ -125,7 +125,7 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
             title.position='top',
             title.hjust=0.5),
         breaks=c(lfc.min, lfc.max),
-        labels=c(round(min(lfc.min)),round(max(lfc.max)))) +
+        labels=c(round(lfc.min),round(lfc.max))) +
     geom_rect(data=term_rect,aes(xmin=x-0.5,xmax=x+0.5,ymin=width,ymax=space),fill=term_rect$col)+
     geom_point(data=legend,aes(x=x,y=0.1,size=factor(label,levels=label),shape=NA))+
     guides(size=guide_legend("GO Terms",ncol=4,byrow=T,override.aes=list(shape=22,fill=term.col,size = 8)))+
