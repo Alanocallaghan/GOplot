@@ -1,31 +1,31 @@
-#' 
+#'
 #' @name GOCluster
 #' @title Circular dendrogram.
-#' @description GOCluster generates a circular dendrogram of the \code{data} 
-#'   clustering using by default euclidean distance and average linkage.The 
+#' @description GOCluster generates a circular dendrogram of the \code{data}
+#'   clustering using by default euclidean distance and average linkage.The
 #'   inner ring displays the color coded logFC while the outside one encodes the
 #'   assigned terms to each gene.
-#' @param data A data frame which should be the result of 
-#'   \code{\link{circle_dat}} in case the data contains only one logFC column. 
+#' @param data A data frame which should be the result of
+#'   \code{\link{circle_dat}} in case the data contains only one logFC column.
 #'   Otherwise \code{data} is a data frame whereas the first column contains the
-#'   genes, the second the term and the following columns the logFCs of the 
+#'   genes, the second the term and the following columns the logFCs of the
 #'   different contrasts.
 #' @param process A character vector of selected processes (ID or term
 #'   description)
-#' @param metric A character vector specifying the distance measure to be used 
+#' @param metric A character vector specifying the distance measure to be used
 #'   (default='euclidean'), see \code{dist}
-#' @param clust A character vector specifying the agglomeration method to be 
+#' @param clust A character vector specifying the agglomeration method to be
 #'   used (default='average'), see \code{hclust}
-#' @param clust.by A character vector specifying if the clustering should be 
-#'   done for gene expression pattern or functional categories. By default the 
+#' @param clust.by A character vector specifying if the clustering should be
+#'   done for gene expression pattern or functional categories. By default the
 #'   clustering is done based on the functional categories.
-#' @param nlfc If TRUE \code{data} contains multiple logFC columns (default= 
+#' @param nlfc If TRUE \code{data} contains multiple logFC columns (default=
 #'   FALSE)
-#' @param lfc.col Character vector to define the color scale for the logFC of 
+#' @param lfc.col Character vector to define the color scale for the logFC of
 #'   the form c(high, midpoint,low)
 #' @param lfc.min Specifies the minimium value of the logFC scale (default = -3)
 #' @param lfc.max Specifies the maximum value of the logFC scale (default = 3)
-#' @param lfc.space The space between the leafs of the dendrogram and the ring 
+#' @param lfc.space The space between the leafs of the dendrogram and the ring
 #'   for the logFC
 #' @param lfc.width The width of the logFC ring
 #' @param term.col A character vector specifying the colors of the term bands
@@ -41,18 +41,18 @@
 #' \dontrun{
 #' #Load the included dataset
 #' data(EC)
-#' 
+#'
 #' #Generating the circ object
 #' circ<-circular_dat(EC$david, EC$genelist)
-#' 
+#'
 #' #Creating the cluster plot
 #' GOCluster(circ, EC$process)
-#' 
+#'
 #' #Cluster the data according to gene expression and assigning a different color scale for the logFC
 #' GOCluster(circ,EC$process,clust.by='logFC',lfc.col=c('darkgoldenrod1','black','cyan1'))
 #' }
 #' @export
-#' 
+#'
 
 GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.min, lfc.max, lfc.space, lfc.width, term.col, term.space, term.width){
   x <- y <- xend <- yend <- width <- space <- logFC <- NULL
@@ -68,7 +68,7 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
   if (missing(term.col)) term.col<-brewer.pal(length(process), 'Set3')
   if (missing(term.space)) term.space<- lfc.space+lfc.width else term.space<-term.space*(-1)+lfc.width
   if (missing(term.width)) term.width<- 2*lfc.width+term.space else term.width<-term.width*(-1)+term.space
-  
+
 
   if (clust.by=='logFC') distance <- stats::dist(chord[,dim(chord)[2]], method=metric)
   if (clust.by=='term') distance <- stats::dist(chord, method=metric)
@@ -91,7 +91,7 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
       lfc<-rbind(lfc,tmp_df)
     }
   }else{
-    lfc <- all[,c(2, dim(all)[2])]  
+    lfc <- all[,c(2, dim(all)[2])]
     lfc$space <- lfc.space
     lfc$width <- lfc.width
   }
@@ -116,26 +116,35 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
   ggplot()+
     geom_segment(data=segment(dendr), aes(x=x, y=y, xend=xend, yend=yend))+
     geom_rect(data=lfc,aes(xmin=x-0.5,xmax=x+0.5,ymin=width,ymax=space,fill=logFC))+
-    scale_fill_gradient2('logFC', space = 'Lab', low=lfc.col[3],mid=lfc.col[2],high=lfc.col[1],guide=guide_colorbar(title.position='top',title.hjust=0.5),breaks=c(min(lfc$logFC),max(lfc$logFC)),labels=c(round(min(lfc$logFC)),round(max(lfc$logFC))))+
+    scale_fill_gradient2('logFC',
+        space = 'Lab',
+        low=lfc.col[3],
+        mid=lfc.col[2],
+        high=lfc.col[1],
+        guide=guide_colorbar(
+            title.position='top',
+            title.hjust=0.5),
+        breaks=c(lfc.min, lfc.max),
+        labels=c(round(min(lfc.min)),round(max(lfc.max)))) +
     geom_rect(data=term_rect,aes(xmin=x-0.5,xmax=x+0.5,ymin=width,ymax=space),fill=term_rect$col)+
     geom_point(data=legend,aes(x=x,y=0.1,size=factor(label,levels=label),shape=NA))+
     guides(size=guide_legend("GO Terms",ncol=4,byrow=T,override.aes=list(shape=22,fill=term.col,size = 8)))+
     coord_polar()+
     scale_y_reverse()+
     theme(legend.position='bottom',legend.background = element_rect(fill='transparent'),legend.box='horizontal',legend.direction='horizontal')+
-    theme_blank  
-    
+    theme_blank
+
 }
 
-#' 
+#'
 #' @name GOChord
 #' @title Displays the relationship between genes and terms.
-#' @description The GOChord function generates a circularly composited overview 
-#'   of selected/specific genes and their assigned processes or terms. More 
+#' @description The GOChord function generates a circularly composited overview
+#'   of selected/specific genes and their assigned processes or terms. More
 #'   generally, it joins genes and processes via ribbons in an intersection-like
-#'   graph. The input can be generated with the \code{\link{chord_dat}} 
+#'   graph. The input can be generated with the \code{\link{chord_dat}}
 #'   function.
-#' @param data The matrix represents the binary relation (1= is related to, 0= 
+#' @param data The matrix represents the binary relation (1= is related to, 0=
 #'   is not related to) between a set of genes (rows) and processes (columns); a
 #'   column for the logFC of the genes is optional
 #' @param title The title (on top) of the plot
@@ -143,23 +152,23 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
 #' @param gene.order A character vector defining the order of the displayed gene
 #'   labels
 #' @param gene.size The size of the gene labels
-#' @param gene.space The space between the gene labels and the segement of the 
+#' @param gene.space The space between the gene labels and the segement of the
 #'   logFC
 #' @param nlfc Defines the number of logFC columns (default=1)
-#' @param lfc.col The fill color for the logFC specified in the following form: 
+#' @param lfc.col The fill color for the logFC specified in the following form:
 #'   c(color for low values, color for the mid point, color for the high values)
 #' @param lfc.min Specifies the minimium value of the logFC scale (default = -3)
 #' @param lfc.max Specifies the maximum value of the logFC scale (default = 3)
 #' @param ribbon.col The background color of the ribbons
 #' @param border.size Defines the size of the ribbon borders
 #' @param process.label The size of the legend entries
-#' @param limit A vector with two cutoff values (default= c(0,0)). The first 
-#' value defines the minimum number of terms a gene has to be assigned to. The 
+#' @param limit A vector with two cutoff values (default= c(0,0)). The first
+#' value defines the minimum number of terms a gene has to be assigned to. The
 #' second the minimum number of genes assigned to a selected term.
-#' @details The \code{gene.order} argument has three possible options: "logFC", 
+#' @details The \code{gene.order} argument has three possible options: "logFC",
 #'   "alphabetical", "none", which are quite self- explanatory.
-#'   
-#'   Maybe the most important argument of the function is \code{nlfc}.If your 
+#'
+#'   Maybe the most important argument of the function is \code{nlfc}.If your
 #'   \code{data} does not contain a column of logFC values you have to set
 #'   \code{nlfc = 0}. Differential expression analysis can be performed for
 #'   multiple conditions and/or batches. Therefore, the data frame might contain
@@ -167,15 +176,15 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
 #'   \code{nlfc} argument is used as well. It is a numeric value and it defines
 #'   the number of logFC columns of your \code{data}. The default is "1"
 #'   assuming that most of the time only one contrast is considered.
-#'   
-#'   To represent the data more useful it might be necessary to reduce the 
+#'
+#'   To represent the data more useful it might be necessary to reduce the
 #'   dimension of \code{data}. This can be achieved with \code{limit}. The first
 #'   value of the vector defines the threshold for the minimum number of terms a
 #'   gene has to be assigned to in order to be represented in the plot. Most of
 #'   the time it is more meaningful to represent genes with various functions. A
-#'   value of 3 excludes all genes with less than three term assignments. 
-#'   Whereas the second value of the parameter restricts the number of terms 
-#'   according to the number of assigned genes. All terms with a count smaller 
+#'   value of 3 excludes all genes with less than three term assignments.
+#'   Whereas the second value of the parameter restricts the number of terms
+#'   according to the number of assigned genes. All terms with a count smaller
 #'   or equal to the threshold are excluded.
 #' @seealso \code{\link{chord_dat}}
 #' @import ggplot2
@@ -184,16 +193,16 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
 #' \dontrun{
 #' # Load the included dataset
 #' data(EC)
-#' 
+#'
 #' # Generating the binary matrix
 #' chord<-chord_dat(circ,EC$genes,EC$process)
-#' 
+#'
 #' # Creating the chord plot
 #' GOChord(chord)
-#' 
+#'
 #' # Excluding process with less than 5 assigned genes
 #' GOChord(chord, limit = c(0,5))
-#' 
+#'
 #' # Creating the chord plot genes ordered by logFC and a different logFC color scale
 #' GOChord(chord,space=0.02,gene.order='logFC',lfc.col=c('red','black','cyan'))
 #' }
@@ -202,7 +211,7 @@ GOCluster<-function(data, process, metric, clust, clust.by, nlfc, lfc.col, lfc.m
 GOChord <- function(data, title, space, gene.order, gene.size, gene.space, nlfc = 1, lfc.col, lfc.min, lfc.max, ribbon.col, border.size, process.label, limit){
   y <- id <- xpro <- ypro <- xgen <- ygen <- lx <- ly <- ID <- logFC <- NULL
   Ncol <- dim(data)[2]
-  
+
   if (missing(title)) title <- ''
   if (missing(space)) space = 0
   if (missing(gene.order)) gene.order <- 'none'
@@ -214,7 +223,7 @@ GOChord <- function(data, title, space, gene.order, gene.size, gene.space, nlfc 
   if (missing(border.size)) border.size <- 0.5
   if (missing (process.label)) process.label <- 11
   if (missing(limit)) limit <- c(0, 0)
-  
+
   if (gene.order == 'logFC') data <- data[order(data[, Ncol], decreasing = T), ]
   if (gene.order == 'alphabetical') data <- data[order(rownames(data)), ]
   if (sum(!is.na(match(colnames(data), 'logFC'))) > 0){
@@ -270,7 +279,7 @@ GOChord <- function(data, title, space, gene.order, gene.size, gene.space, nlfc 
     if (nlfc == 1){
       df_genes <- data.frame(x = xp, y = yp, id = rep(c(1:Nrow), each = 4 + 2 * l), logFC = rep(lfc, each = 4 + 2 * l))
     }else{
-      df_genes <- data.frame(x = xp, y = yp, id = rep(c(1:(nlfc*Nrow)), each = 4 + 2 * l), logFC = rep(logs, each = 4 + 2 * l))  
+      df_genes <- data.frame(x = xp, y = yp, id = rep(c(1:(nlfc*Nrow)), each = 4 + 2 * l), logFC = rep(logs, each = 4 + 2 * l))
     }
   }else{
     df_genes <- data.frame(x = xp, y = yp, id = rep(c(1:Nrow), each = 4 + 2 * l))
@@ -299,7 +308,7 @@ GOChord <- function(data, title, space, gene.order, gene.size, gene.space, nlfc 
       x.start <- c(x.start, sin(val[v]), sin(val[v + 1]))
       y.start <- c(y.start, cos(val[v]), cos(val[v + 1]))
     }
-  }	
+  }
   df_bezier$x.start <- x.start
   df_bezier$y.start <- y.start
   df_path <- bezier(df_bezier, colRib)
@@ -308,22 +317,31 @@ GOChord <- function(data, title, space, gene.order, gene.size, gene.space, nlfc 
     logFC <- sapply(tmp, function(x) ifelse(x < lfc.min, lfc.min, x))
     df_genes$logFC <- logFC
   }
-  
+
   g<- ggplot() +
     geom_polygon(data = df_process, aes(x, y, group=id), fill='gray70', inherit.aes = F,color='black') +
-    geom_polygon(data = df_process, aes(x, y, group=id), fill=cols, inherit.aes = F,alpha=0.6,color='black') +	
+    geom_polygon(data = df_process, aes(x, y, group=id), fill=cols, inherit.aes = F,alpha=0.6,color='black') +
     geom_point(aes(x = xpro, y = ypro, size = factor(labels, levels = labels), shape = NA), data = df_texp) +
     guides(size = guide_legend("GO Terms", ncol = 4, byrow = T, override.aes = list(shape = 22, fill = unique(cols), size = 8))) +
     theme(legend.text = element_text(size = process.label)) +
     geom_text(aes(xgen, ygen, label = labels, angle = angle), data = df_texg, size = gene.size) +
-    geom_polygon(aes(x = lx, y = ly, group = ID), data = df_path, fill = colRibb, color = 'black', size = border.size, inherit.aes = F) +		
+    geom_polygon(aes(x = lx, y = ly, group = ID), data = df_path, fill = colRibb, color = 'black', size = border.size, inherit.aes = F) +
     labs(title = title) +
     theme_blank
-  
+
   if (nlfc >= 1){
     g + geom_polygon(data = df_genes, aes(x, y, group = id, fill = logFC), inherit.aes = F, color = 'black') +
-      scale_fill_gradient2('logFC', space = 'Lab', low = lfc.col[3], mid = lfc.col[2], high = lfc.col[1], guide = guide_colorbar(title.position = "top", title.hjust = 0.5), 
-                           breaks = c(min(df_genes$logFC), max(df_genes$logFC)), labels = c(round(min(df_genes$logFC)), round(max(df_genes$logFC)))) +
+      scale_fill_gradient2(
+        'logFC',
+        space = 'Lab',
+        low = lfc.col[3],
+        mid = lfc.col[2],
+        high = lfc.col[1],
+        guide = guide_colorbar(
+            title.position = "top",
+            title.hjust = 0.5),
+        breaks = c(lfc.min, lfc.max),
+        labels = c(round(lfc.min), round(lfc.max))) +
       theme(legend.position = 'bottom', legend.background = element_rect(fill = 'transparent'), legend.box = 'horizontal', legend.direction = 'horizontal')
   }else{
     g + geom_polygon(data = df_genes, aes(x, y, group = id), fill = 'gray50', inherit.aes = F, color = 'black')+
